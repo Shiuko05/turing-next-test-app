@@ -2,11 +2,12 @@
 
 import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase-browser';
 
 export default function AuthConfirm() {
   const router = useRouter();
   const hasRun = useRef(false);
+  const supabase = createClient();
 
   useEffect(() => {
 
@@ -33,7 +34,7 @@ export default function AuthConfirm() {
             router.push('/auth/login?error=auth_failed');
           } else {
             console.log('✅ Sesión establecida correctamente');
-            router.push('/dashboard');
+            router.push('/');
           }
         } catch (err) {
           console.error('Error inesperado:', err);
@@ -44,7 +45,7 @@ export default function AuthConfirm() {
         const { data: { session } } = await supabase.auth.getSession();
         
         if (session) {
-          router.push('/dashboard');
+          router.push('/');
         } else {
           router.push('/auth/login?error=no_session');
         }
@@ -52,7 +53,7 @@ export default function AuthConfirm() {
     };
 
     handleAuth();
-  }, [router]);
+  }, [router, supabase.auth]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">

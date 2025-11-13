@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import { useUser } from '@/hooks/useUser';
 import { useAdminData } from '@/hooks/useAdminData';
 import { useAdminActions } from '@/hooks/useAdminActions';
@@ -100,11 +101,11 @@ export default function AdminPage() {
     try {
       await updateProduct(productId, data);
       setEditProductDialog({ open: false, product: null });
-      alert('Producto actualizado exitosamente');
+      toast.success('Producto actualizado exitosamente');
       // Recargar página para obtener datos actualizados
       window.location.reload();
     } catch (error) {
-      alert(error instanceof Error ? error.message : 'Error al actualizar producto');
+      toast.error(error instanceof Error ? error.message : 'Error al actualizar producto');
     }
   };
 
@@ -121,10 +122,10 @@ export default function AdminPage() {
     try {
       await createProduct(data);
       setCreateProductDialog(false);
-      alert('Producto creado exitosamente');
+      toast.success('Producto creado exitosamente');
       window.location.reload();
     } catch (error) {
-      alert(error instanceof Error ? error.message : 'Error al crear producto');
+      toast.error(error instanceof Error ? error.message : 'Error al crear producto');
     }
   };
 
@@ -137,11 +138,11 @@ export default function AdminPage() {
     try {
       await updateUser(userId, data);
       setEditUserDialog({ open: false, user: null });
-      alert('Usuario actualizado exitosamente');
+      toast.success('Usuario actualizado exitosamente');
       // Recargar página para obtener datos actualizados
       window.location.reload();
     } catch (error) {
-      alert(error instanceof Error ? error.message : 'Error al actualizar usuario');
+      toast.error(error instanceof Error ? error.message : 'Error al actualizar usuario');
     }
   };
 
@@ -158,10 +159,10 @@ export default function AdminPage() {
     try {
       await createUser(data);
       setCreateUserDialog(false);
-      alert('Usuario creado exitosamente');
+      toast.success('Usuario creado exitosamente');
       window.location.reload();
     } catch (error) {
-      alert(error instanceof Error ? error.message : 'Error al crear usuario');
+      toast.error(error instanceof Error ? error.message : 'Error al crear usuario');
     }
   };
 
@@ -172,17 +173,17 @@ export default function AdminPage() {
     try {
       if (deleteDialog.type === 'product') {
         await deleteProduct(deleteDialog.id);
-        alert('Producto eliminado exitosamente');
+        toast.success('Producto eliminado exitosamente');
       } else {
         await deleteUser(deleteDialog.id);
-        alert('Usuario eliminado exitosamente');
+        toast.success('Usuario eliminado exitosamente');
       }
       
       setDeleteDialog({ open: false, type: null, id: null, name: '' });
       // Recargar página para obtener datos actualizados
       window.location.reload();
     } catch (error) {
-      alert(error instanceof Error ? error.message : 'Error al eliminar');
+      toast.error(error instanceof Error ? error.message : 'Error al eliminar');
     }
   };
 
@@ -373,7 +374,7 @@ export default function AdminPage() {
                               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock</th>
                               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
                             </tr>
-                          </thead>;
+                          </thead>
                           <tbody className="bg-white divide-y divide-gray-200">
                             {productos.map((producto) => (
                               <tr key={producto.product_id} className="hover:bg-gray-50">

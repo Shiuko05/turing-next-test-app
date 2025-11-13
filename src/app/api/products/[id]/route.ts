@@ -34,6 +34,7 @@ function isValidUUID(uuid: string): boolean {
 
 // GET /api/products/[id] - Obtener producto específico
 export async function GET(
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {

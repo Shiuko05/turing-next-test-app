@@ -4,6 +4,7 @@ import { useProducts } from '@/hooks/useProducts';
 import { usePurchase } from '@/hooks/usePurchase';
 import Image from 'next/image';
 import { useEffect } from 'react';
+import { toast } from 'sonner';
 import PurchaseModal from './PurchaseModal';
 
 /**
@@ -39,7 +40,7 @@ export default function ProductsGrid() {
     const result = await confirmPurchase();
     
     if (result.success) {
-      alert(result.message);
+      toast.success(result.message);
       cancelPurchase();
       window.location.reload();
     }

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { toast } from 'sonner';
 import {
   Dialog,
   DialogContent,
@@ -107,7 +108,7 @@ export function EditProductDialog({
       }
     } catch (error) {
       console.error('Error saving product:', error);
-      alert('Error al guardar el producto');
+      toast.error('Error al guardar el producto');
     }
   };
 

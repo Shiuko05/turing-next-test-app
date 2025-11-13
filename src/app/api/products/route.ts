@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin, createClientWithToken } from '@/lib/supabase';
+import { supabaseAdmin, createClientWithToken } from '@/lib/supabase-server';
 
 // Función helper para verificar si el usuario es admin
 async function verifyAdmin(token: string) {
@@ -24,7 +24,17 @@ async function verifyAdmin(token: string) {
   return { isAdmin: true, userId: user.id, error: null };
 }
 
-// GET /api/products - Listar todos los productos
+/**
+ * GET /api/products
+ * 
+ * @description Obtiene lista de productos con filtros opcionales
+ * @public No requiere autenticación
+ * @query {string} category - Filtrar por categoría
+ * @query {number} minPrice - Precio mínimo
+ * @query {number} maxPrice - Precio máximo
+ * @query {boolean} inStock - Solo productos con stock
+ * @returns {Object} Lista de productos y total
+ */
 export async function GET(request: NextRequest) {
   try {
     // Los productos son públicos, no requieren autenticación para listar
@@ -81,7 +91,14 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/products - Crear producto
+/**
+ * POST /api/products
+ * 
+ * @description Crea uno o múltiples productos (solo admin)
+ * @requires Autenticación con rol 'admin'
+ * @body {Object|Array} Producto(s) a crear con name, price, stock, category
+ * @returns {Object} Producto(s) creado(s) y mensaje de confirmación
+ */
 export async function POST(request: NextRequest) {
   try {
     // Verificar autenticación y rol de admin
@@ -102,44 +119,69 @@ export async function POST(request: NextRequest) {
     }
 
     // Obtener datos del body
-    const { name, description, price, stock, category, image_url } = await request.json();
+    const bodyData = await request.json();
+    const isArray = Array.isArray(bodyData);
 
-    // Validar campos requeridos
-    if (!name || price === undefined || stock === undefined || !category) {
-      return NextResponse.json(
-        { error: 'name, price, stock y category son requeridos' },
-        { status: 400 }
-      );
+    // Función de validación
+    const validateProduct = (product: Record<string, unknown>) => {
+      if (!product.name || product.price === undefined || product.stock === undefined || !product.category) {
+        return { valid: false, error: 'name, price, stock y category son requeridos' };
+      }
+      if (typeof product.price !== 'number' || product.price < 0) {
+        return { valid: false, error: 'El precio debe ser un número mayor o igual a 0' };
+      }
+      if (typeof product.stock !== 'number' || !Number.isInteger(product.stock) || product.stock < 0) {
+        return { valid: false, error: 'El stock debe ser un número entero mayor o igual a 0' };
+      }
+      return { valid: true };
+    };
+
+    // Validar datos
+    if (isArray) {
+      // Validar cada producto en el array
+      for (let i = 0; i < bodyData.length; i++) {
+        const validation = validateProduct(bodyData[i]);
+        if (!validation.valid) {
+          return NextResponse.json(
+            { error: `Producto ${i + 1}: ${validation.error}` },
+            { status: 400 }
+          );
+        }
+      }
+    } else {
+      // Validar producto único
+      const validation = validateProduct(bodyData);
+      if (!validation.valid) {
+        return NextResponse.json(
+          { error: validation.error },
+          { status: 400 }
+        );
+      }
     }
 
-    // Validar tipos de datos
-    if (typeof price !== 'number' || price < 0) {
-      return NextResponse.json(
-        { error: 'El precio debe ser un número mayor o igual a 0' },
-        { status: 400 }
-      );
-    }
+    // Preparar datos para insertar
+    const dataToInsert = isArray 
+      ? bodyData.map((p: Record<string, unknown>) => ({
+          name: p.name,
+          description: p.description || null,
+          price: p.price,
+          stock: p.stock,
+          category: p.category,
+          image_url: p.image_url || null
+        }))
+      : {
+          name: bodyData.name,
+          description: bodyData.description || null,
+          price: bodyData.price,
+          stock: bodyData.stock,
+          category: bodyData.category,
+          image_url: bodyData.image_url || null
+        };
 
-    if (!Number.isInteger(stock) || stock < 0) {
-      return NextResponse.json(
-        { error: 'El stock debe ser un número entero mayor o igual a 0' },
-        { status: 400 }
-      );
-    }
-
-    // Insertar producto
-    const { data: newProduct, error: insertError } = await supabaseAdmin
+    const { data: newProducts, error: insertError } = await supabaseAdmin
       .from('products')
-      .insert({
-        name,
-        description: description || null,
-        price,
-        stock,
-        category,
-        image_url: image_url || null
-      })
-      .select()
-      .single();
+      .insert(dataToInsert)
+      .select();
 
     if (insertError) {
       return NextResponse.json(
@@ -150,8 +192,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(
       { 
-        message: 'Producto creado exitosamente',
-        product: newProduct
+        message: isArray ? `${newProducts.length} productos creados exitosamente` : 'Producto creado exitosamente',
+        products: newProducts,
+        total: newProducts.length
       },
       { status: 201 }
     );

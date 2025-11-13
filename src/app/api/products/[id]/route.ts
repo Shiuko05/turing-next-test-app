@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin, createClientWithToken } from '@/lib/supabase';
+import { supabaseAdmin, createClientWithToken } from '@/lib/supabase-server';
+import { unlink } from 'fs/promises';
+import path from 'path';
 
 // Función helper para verificar si el usuario es admin
 async function verifyAdmin(token: string) {
@@ -127,6 +129,34 @@ export async function PUT(
         { error: 'El stock debe ser un número entero mayor o igual a 0' },
         { status: 400 }
       );
+    }
+
+    // Si se está actualizando la imagen, eliminar la imagen anterior
+    if (image_url !== undefined && image_url !== null) {
+      // Obtener la imagen actual del producto
+      const { data: currentProduct } = await supabaseAdmin
+        .from('products')
+        .select('image_url')
+        .eq('product_id', id)
+        .single();
+
+      // Si existe una imagen anterior y es diferente a la nueva, eliminarla
+      if (currentProduct?.image_url && currentProduct.image_url !== image_url) {
+        try {
+          // Extraer solo el path relativo (ej: /uploads/products/imagen.jpg)
+          const oldImagePath = currentProduct.image_url;
+          
+          // Verificar que sea una imagen local (empieza con /uploads/)
+          if (oldImagePath.startsWith('/uploads/')) {
+            const fullPath = path.join(process.cwd(), 'public', oldImagePath);
+            await unlink(fullPath);
+            console.log(`Imagen anterior eliminada: ${fullPath}`);
+          }
+        } catch (error) {
+          // Si falla al eliminar, solo registrar pero continuar con la actualización
+          console.error('Error al eliminar imagen anterior:', error);
+        }
+      }
     }
 
     // Preparar datos para actualizar

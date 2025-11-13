@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin, createClientWithToken } from '@/lib/supabase';
+import { supabaseAdmin, createClientWithToken } from '@/lib/supabase-server';
 
 // Función helper para verificar si el usuario es admin
 async function verifyAdmin(token: string) {
@@ -42,11 +42,23 @@ export async function GET(
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { isAdmin, error: verifyError } = await verifyAdmin(token);
+    const userClient = createClientWithToken(token);
+    
+    const { data: { user: authUser }, error: authError } = await userClient.auth.getUser();
 
-    if (!isAdmin) {
-      return NextResponse.json({ error: verifyError }, { status: 403 });
-      }
+    if (authError || !authUser) {
+      return NextResponse.json({ error: 'Token inválido' }, { status: 401 });
+    }
+
+    // Verificar si es admin o el mismo usuario
+    const { isAdmin } = await verifyAdmin(token);
+    
+    if (!isAdmin && authUser.id !== id) {
+      return NextResponse.json(
+        { error: 'No tienes permisos para ver este usuario' },
+        { status: 403 }
+      );
+    }
       
     console.log('Fetching user with ID:', id);
 
@@ -92,10 +104,23 @@ export async function PUT(
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { isAdmin, error: verifyError } = await verifyAdmin(token);
+    const userClient = createClientWithToken(token);
+    
+    const { data: { user: authUser }, error: authError } = await userClient.auth.getUser();
 
-    if (!isAdmin) {
-      return NextResponse.json({ error: verifyError }, { status: 403 });
+    if (authError || !authUser) {
+      return NextResponse.json({ error: 'Token inválido' }, { status: 401 });
+    }
+
+    // Verificar si es admin o el mismo usuario
+    const { isAdmin } = await verifyAdmin(token);
+    const isSelfUpdate = authUser.id === id;
+    
+    if (!isAdmin && !isSelfUpdate) {
+      return NextResponse.json(
+        { error: 'No tienes permisos para actualizar este usuario' },
+        { status: 403 }
+      );
     }
 
     // Obtener datos del body
@@ -107,6 +132,14 @@ export async function PUT(
       return NextResponse.json(
         { error: 'Debe proporcionar al menos un campo para actualizar' },
         { status: 400 }
+      );
+    }
+
+    // Solo admin puede cambiar rol, email o password de otros usuarios
+    if (!isAdmin && (role || (email && !isSelfUpdate) || (password && !isSelfUpdate))) {
+      return NextResponse.json(
+        { error: 'No tienes permisos para actualizar estos campos' },
+        { status: 403 }
       );
     }
 

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin, createClientWithToken } from '@/lib/supabase';
+import { supabaseAdmin, createClientWithToken } from '@/lib/supabase-server';
 
 // Función helper para verificar autenticación
 async function verifyAuthentication(token: string) {
@@ -37,7 +37,15 @@ async function verifyAdmin(token: string) {
   return { isAdmin: true, userId: user.id, error: null };
 }
 
-// GET /api/purchased - Listar compras
+/**
+ * GET /api/purchased
+ * 
+ * @description Obtiene historial de compras del usuario
+ * @requires Autenticación (token Bearer)
+ * @query {string} user_id - Filtrar por usuario (admin puede ver cualquiera)
+ * @query {string} product_id - Filtrar por producto
+ * @returns {Object} Lista de compras con detalles de usuario y producto
+ */
 export async function GET(request: NextRequest) {
   try {
     // Verificar autenticación
@@ -51,6 +59,7 @@ export async function GET(request: NextRequest) {
     }
 
     const token = authHeader.replace('Bearer ', '');
+    // Verificar si está autenticado y obtener userId
     const { isAuthenticated, userId, error: authError } = await verifyAuthentication(token);
 
     if (!isAuthenticated) {
@@ -127,7 +136,15 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/purchased - Crear compra (realizar compra)
+/**
+ * POST /api/purchased
+ * 
+ * @description Procesa una nueva compra de producto
+ * @requires Autenticación (token Bearer)
+ * @body {string} product_id - UUID del producto a comprar
+ * @body {number} quantity - Cantidad a comprar (entero > 0)
+ * @returns {Object} Detalles de la compra y stock restante
+ */
 export async function POST(request: NextRequest) {
   try {
     // Verificar autenticación

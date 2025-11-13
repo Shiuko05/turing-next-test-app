@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin, createClientWithToken } from '@/lib/supabase';
+import { supabaseAdmin, createClientWithToken } from '@/lib/supabase-server';
 
 // GET /api/users - Listar usuarios
 export async function GET(request: NextRequest) {
@@ -135,9 +135,11 @@ export async function POST(request: NextRequest) {
             email,
             password,
             options: {
+                emailRedirectTo: `${request.nextUrl.origin}/api/auth/callback`,
                 data: {
                     username,
-                    lastname
+                    lastname,
+                    role
                 }
             }
         })
@@ -149,10 +151,19 @@ export async function POST(request: NextRequest) {
             )
         }
 
+        // El trigger 'handle_new_user' insertará automáticamente en la tabla users
+        // cuando el usuario confirme su email
+
         return NextResponse.json(
         { 
             message: 'Usuario creado exitosamente. Revisar el correo para confirmar la cuenta',
-            user: authData.user
+            user: {
+              id: authData.user?.id,
+              email: authData.user?.email,
+              username,
+              lastname,
+              role
+            }
         },
         { status: 201 }
         );

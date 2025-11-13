@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase-server';
 
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL('/auth/confirm', request.url));
   }
 
-  const { error } = await supabase.auth.exchangeCodeForSession(code);
+  const { error } = await supabaseAdmin.auth.exchangeCodeForSession(code);
 
   if (error) {
     console.error('Error al intercambiar código:', error);

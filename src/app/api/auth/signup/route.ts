@@ -1,9 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase, supabaseAdmin } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase-server';
 
+/**
+ * POST /api/auth/signup
+ * 
+ * @description Endpoint para registrar nuevos usuarios
+ * @body {string} email - Correo electrónico
+ * @body {string} password - Contraseña (mín 6 caracteres)
+ * @body {string} username - Nombre del usuario
+ * @body {string} lastname - Apellido del usuario
+ * @body {string} role - Rol del usuario (default: 'user')
+ * @returns {Object} Mensaje de confirmación y datos básicos del usuario
+ */
 export async function POST(request: NextRequest) {
   try {
-    const { email, password, username, lastname } = await request.json();
+    const { email, password, username, lastname, role = 'user' } = await request.json();
 
     // Validar datos de entrada
     if (!email || !password || !username || !lastname) {
@@ -13,12 +24,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Registrar usuario con Supabase Auth
-    const { data: authData, error: authError } = await supabase.auth.signUp({
+    // Registrar usuario con Supabase Auth y guardar metadata
+    const { data: authData, error: authError } = await supabaseAdmin.auth.signUp({
       email,
       password,
       options: {
         emailRedirectTo: `${request.nextUrl.origin}/api/auth/callback`,
+        data: {
+          username: username,
+          lastname: lastname,
+          role: role
+        }
       }
     });
 
@@ -29,24 +45,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Insertar datos adicionales en la tabla users
-    if (authData.user) {
-      const { error: dbError } = await supabaseAdmin
-        .from('users')
-        .insert({
-          user_id: authData.user.id,
-          username: username,
-          lastname: lastname,
-          email: authData.user.email,
-        });
-
-      if (dbError) {
-        return NextResponse.json(
-          { error: dbError.message },
-          { status: 500 }
-        );
-      }
-    }
+    // El trigger 'handle_new_user' insertará automáticamente en la tabla users
+    // cuando el usuario confirme su email
 
     return NextResponse.json(
       { 
@@ -55,7 +55,8 @@ export async function POST(request: NextRequest) {
           id: authData.user?.id,
           email: authData.user?.email,
           username,
-          lastname
+          lastname,
+          role
         }
       },
       { status: 201 }

@@ -1,6 +1,14 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase-server';
 
+/**
+ * POST /api/auth/login
+ * 
+ * @description Endpoint para iniciar sesión de usuarios
+ * @body {string} email - Correo electrónico del usuario
+ * @body {string} password - Contraseña del usuario
+ * @returns {Object} Sesión y tokens de autenticación
+ */
 export async function POST(request: Request) {
   try {
     const { email, password } = await request.json();
@@ -14,7 +22,7 @@ export async function POST(request: Request) {
     }
   
     // Iniciar sesión con Supabase Auth
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabaseAdmin.auth.signInWithPassword({
       email,
       password,
     });

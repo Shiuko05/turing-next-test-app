@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { User, Mail, Save, Loader2 } from 'lucide-react';
 import { useProfile } from '@/hooks/useProfile';
-import { createClient } from '@/lib/supabase-browser';
+import { useUser } from '@/hooks/useUser';
 import {
   Dialog,
   DialogContent,
@@ -23,45 +23,35 @@ interface ProfileModalProps {
 
 export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   const { updating, error, updateProfile } = useProfile();
-  const [formData, setFormData] = useState({
-    username: '',
-    lastname: '',
-    email: '',
-  });
-  const [loading, setLoading] = useState(true);
+  const { user, loading } = useUser();
+  const [formData, setFormData] = useState(() => ({
+    username: user?.user_metadata?.username || user?.username || '',
+    lastname: user?.user_metadata?.lastname || user?.lastname || '',
+    email: user?.user_metadata?.email || user?.email || '',
+  }));
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (isOpen) {
-      loadProfileData();
-    } else {
-      setLoading(true);
-      setSuccessMessage(null);
-    }
-  }, [isOpen]);
+  const firstLoadRef = useRef(true);
 
-  const loadProfileData = async () => {
-    setLoading(true);
-    
-    try {
-      const supabase = createClient();
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (session?.user) {
-        const { user_metadata, email } = session.user;
-        
+    useEffect(() => {
+    if (!user) return;
+
+    // Solo permitir sincronizar la primera vez que llega user
+    if (firstLoadRef.current) {
+        firstLoadRef.current = false;
+
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setFormData({
-          username: user_metadata?.username || '',
-          lastname: user_metadata?.lastname || '',
-          email: email || '',
+        username: user.user_metadata?.username || user.username || "",
+        lastname: user.user_metadata?.lastname || user.lastname || "",
+        email: user.user_metadata?.email || user.email || "",
         });
-      }
-    } catch (err) {
-      console.error('Error loading profile:', err);
-    } finally {
-      setLoading(false);
+
+        setSuccessMessage(null);
     }
-  };
+    }, [user]);
+
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,7 +66,7 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
       setSuccessMessage(result.message || 'Perfil actualizado');
       setTimeout(() => {
         onClose();
-        window.location.reload();
+        // El header y la modal se sincronizan automáticamente
       }, 1500);
     }
   };

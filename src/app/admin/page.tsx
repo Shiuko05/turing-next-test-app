@@ -24,6 +24,7 @@ interface Product {
   stock: number;
   description?: string;
   image_url?: string;
+  status?: number;
 }
 
 interface User {
@@ -64,7 +65,7 @@ export default function AdminPage() {
   const { productos, pedidos, usuarios, loading: loadingData } = useAdminData(isAdmin);
   
   // Hook para acciones de admin
-  const { updateProduct, deleteProduct, updateUser, deleteUser, createProduct, createUser, loading: actionLoading } = useAdminActions();
+  const { updateProduct, deactivateProduct, updateUser, deleteUser, createProduct, createUser, loading: actionLoading } = useAdminActions();
   
   // Estados para los diálogos
   const [editProductDialog, setEditProductDialog] = useState<{ open: boolean; product: Product | null }>({
@@ -172,8 +173,8 @@ export default function AdminPage() {
 
     try {
       if (deleteDialog.type === 'product') {
-        await deleteProduct(deleteDialog.id);
-        toast.success('Producto eliminado exitosamente');
+        await deactivateProduct(deleteDialog.id);
+        toast.success('Producto desactivado exitosamente');
       } else {
         await deleteUser(deleteDialog.id);
         toast.success('Usuario eliminado exitosamente');
@@ -372,6 +373,7 @@ export default function AdminPage() {
                               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Categoría</th>
                               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Precio</th>
                               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
                             </tr>
                           </thead>
@@ -382,6 +384,13 @@ export default function AdminPage() {
                                 <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">{producto.category}</td>
                                 <td className="px-4 py-4 whitespace-nowrap text-sm font-semibold text-[#6ee7b7]">${producto.price}</td>
                                 <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">{producto.stock} unidades</td>
+                                <td className="px-4 py-4 whitespace-nowrap text-sm">
+                                  {producto.status === 0 ? (
+                                    <span className="px-2 py-1 rounded-full bg-red-100 text-red-700 text-xs font-semibold">Desactivado</span>
+                                  ) : (
+                                    <span className="px-2 py-1 rounded-full bg-green-100 text-green-700 text-xs font-semibold">Activo</span>
+                                  )}
+                                </td>
                                 <td className="px-4 py-4 whitespace-nowrap text-sm">
                                   <div className="flex gap-4">
                                     <button 
@@ -414,6 +423,7 @@ export default function AdminPage() {
                               <div>
                                 <h3 className="font-semibold text-[#1e293b]">{producto.name}</h3>
                                 <p className="text-sm text-gray-500">{producto.category}</p>
+                                <span className={`px-2 py-1 rounded-full text-xs font-semibold mt-1 inline-block ${producto.status === 0 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>{producto.status === 0 ? 'Desactivado' : 'Activo'}</span>
                               </div>
                               <div className="flex gap-2">
                                 <button 
@@ -473,10 +483,10 @@ export default function AdminPage() {
                         {pedidos.map((pedido) => (
                           <tr key={pedido.purchase_id} className="hover:bg-gray-50">
                             <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
-                              {pedido.users.username} {pedido.users.lastname}
+                              {pedido.users ? `${pedido.users.username ?? ''} ${pedido.users.lastname ?? ''}` : 'Sin usuario'}
                             </td>
                             <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                              {pedido.products.name}
+                              {pedido.products?.name ?? 'Sin producto'}
                             </td>
                             <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">{pedido.quantity} unidades</td>
                             <td className="px-4 py-4 whitespace-nowrap text-sm font-semibold text-[#6ee7b7]">${pedido.total_price}</td>
@@ -494,9 +504,9 @@ export default function AdminPage() {
                     {pedidos.map((pedido) => (
                       <div key={pedido.purchase_id} className="border border-gray-200 rounded-lg p-4">
                         <div className="mb-3">
-                          <h3 className="font-semibold text-[#1e293b]">{pedido.products.name}</h3>
+                          <h3 className="font-semibold text-[#1e293b]">{pedido.products?.name ?? 'Sin producto'}</h3>
                           <p className="text-sm text-gray-500">
-                            {pedido.users.username} {pedido.users.lastname}
+                            {pedido.users ? `${pedido.users.username ?? ''} ${pedido.users.lastname ?? ''}` : 'Sin usuario'}
                           </p>
                         </div>
                         <div className="space-y-1 mb-3">

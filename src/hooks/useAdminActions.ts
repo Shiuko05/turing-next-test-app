@@ -85,8 +85,8 @@ export function useAdminActions() {
     }
   };
 
-  // Eliminar producto
-  const deleteProduct = async (productId: string) => {
+  // Desactivar producto
+  const deactivateProduct = async (productId: string) => {
     setLoading(true);
     setError(null);
 
@@ -95,15 +95,16 @@ export function useAdminActions() {
       if (!token) throw new Error('No hay token de sesión');
 
       const response = await fetch(`/api/products/${productId}`, {
-        method: 'DELETE',
+        method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`
-        }
+        },
+        body: JSON.stringify({ status: 0 })
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Error al eliminar producto');
+        throw new Error(errorData.error || 'Error al desactivar producto');
       }
 
       return await response.json();
@@ -276,7 +277,7 @@ export function useAdminActions() {
 
   return {
     updateProduct,
-    deleteProduct,
+    deactivateProduct,
     updateUser,
     deleteUser,
     createProduct,

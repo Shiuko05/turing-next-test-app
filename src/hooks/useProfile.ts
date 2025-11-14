@@ -48,6 +48,8 @@ export function useProfile() {
         throw new Error(result.error || 'Error al actualizar el perfil');
       }
 
+      // Refrescar la sesión para propagar los cambios a user_metadata
+      await supabase.auth.refreshSession();
       return { success: true, message: 'Perfil actualizado correctamente' };
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error desconocido';

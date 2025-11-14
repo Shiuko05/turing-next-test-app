@@ -21,6 +21,7 @@ interface Product {
   stock: number;
   description?: string;
   image_url?: string;
+  status?: number;
 }
 
 interface Purchase {
